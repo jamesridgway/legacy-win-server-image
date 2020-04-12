@@ -1,0 +1,65 @@
+{
+    "variables": {
+        "admin_password": "{{env `ADMIN_PASSWORD`}}"
+    },
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            "region": "eu-west-2",
+            "instance_type": "t3a.xlarge",
+            "source_ami_filter": {
+                "filters": {
+                    "virtualization-type": "hvm",
+                    "name": "*Windows_Server-2012-R2*English-64Bit-Base*",
+                    "root-device-type": "ebs"
+                },
+                "most_recent": true,
+                "owners": "amazon"
+            },
+            "launch_block_device_mappings": [
+                {
+                    "device_name": "/dev/sda1",
+                    "delete_on_termination": true,
+                    "volume_size": 60,
+                    "volume_type": "gp2"
+                }
+            ],
+            "ami_name": "legacy-win2012-sql2012-netcore31 {{timestamp}}",
+            "user_data_file": "./bootstrap.txt",
+            "communicator": "winrm",
+            "winrm_username": "Administrator",
+            "winrm_port": 5986,
+            "winrm_insecure": true,
+            "winrm_use_ssl": true,
+            "tags": {
+                "Name": "Legacy: Windows Server 2012, SQL Server Express 2012, .Net Core 3.1"
+            }
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "file",
+            "source": "ssh-key.pub",
+            "destination": "C:\\Users\\Administrator\\.ssh\\authorized_keys"
+        },
+        {
+            "type": "file",
+            "source": "SqlConfigurationFile.ini",
+            "destination": "C:\\SqlConfigurationFile.ini"
+        },
+        {
+            "type": "file",
+            "source": "sshd_config",
+            "destination": "C:\\Users\\Administrator\\sshd_config"
+        },
+        {
+            "type": "powershell",
+            "environment_vars": [
+                "ADMIN_PASSWORD={{ user `admin_password` }}"
+            ],
+            "elevated_user": "Administrator",
+            "elevated_password": "{{.WinRMPassword}}",
+            "script": "init.ps1"
+        }
+    ]
+}
